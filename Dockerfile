@@ -22,7 +22,7 @@ RUN cargo build --release
 RUN rm src/lib.rs
 
 # Now add our actual source
-COPY Makefile sgx-revm.manifest.template ./
+COPY Makefile README.md sgx-revm.manifest.template ./
 COPY src/main.rs ./src/
 COPY sample/ ./sample/
 
