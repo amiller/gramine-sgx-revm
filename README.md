@@ -16,20 +16,52 @@ The EVM database is expected to be instantiated as _empty_, and the user is expe
 
 1. Make the demo unit-testable for CI usage
 
-## How to replicate the MRENCLAVE build on any machine (without SGX)
+## How to replicate the MRENCLAVE build using Docker (no SGX Required)
 
-The best way to replicate the results is through Docker.
+The best way to replicate the results is through Docker. The included Dockerfile begins from the Gramine project's tagged docker image.
+
+At this point you have produced an MRENCLAVE. This should be identical to the MRENCLAVE that would run on an SGX-enabled node.
 
 ```bash
 docker build . --tag revm
+docker run -it revm "gramine-sgx-sigstruct-view sgx-revm.sig"
+```
+
+## How to replicate the execution on an SGX-enabled environment (still using Docker)
+
+First set up the docker environment, providing access to the underlying enclave and AESM service.
+```bash
 docker run -it --device /dev/sgx_enclave \
-       --device /dev/sgx_provision \
        -v /var/run/aesmd/aesm.socket:/var/run/aesmd/aesm.socket \
        -v ./data:/workdir/data \
        revm bash
 ```
 
-## How to replicate the results on an SGX-enabled environment
+Then within the docker environment run
+```
+is-sgx-available
+gramine-sgx ./sgx-revm
+gramine-sgx-quote-view data/quote
+```
+
+## How to verify the resulting quote (no SGX required)
+
+Although you do not need SGX, you will need to use an API key from Intel Attestation Services (IAS).
+You can register for free here: https://api.portal.trustedservices.intel.com/EPID-attestation
+
+```bash
+docker run -it -v ./data:/workdir/data revm bash
+gramine-sgx-quote-view data/quote
+export RA_API_KEY=669244b3e6364b5888289a11d2a1726d
+gramine-sgx-ias-request report -k $RA_API_KEY
+gramine-sgx-ias-verify-report -r data/report -s data/reportsig
+```
+
+It should respond with something `IAS submission successful`. Anything else indicates the API key is no longer valid and you should try to register your own.
+
+## Replicating the experiment with Gramine directly, no Docker
+
+This may be more direct if you already have a Gramine instance installed. This folder is meant to be convenient to run from within `gramine/CI-Examples/gramine-sgx-revm`.
 
 ### Installing the Gramine platform
 
@@ -67,20 +99,8 @@ gramine-sgx-gen-private-key
 cargo build --release
 ```
 
-# Use Gramine to build a manifest and scoop up the dependencies.
+# Use Gramine to build the manifest and compute the MRENCLAVE
+```bash
+make SGX=1
+gramine-sgx-sigstruct-view sgx-revm.sig
 ```
-make SGX=1 RA_TYPE=epid
-```
-
-### Running the demo
-
-On a terminal run:
-```
-gramine-sgx ./sgx-revm
-```
-
-If Gramine is installed then this will output a receipt.
-You can change the values in `/data/output` 
-
-
-docker run --device /dev/sgx_enclave --device /dev/sgx_provision -it gramineproject/gramine
