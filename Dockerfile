@@ -32,4 +32,4 @@ RUN cargo build --release
 # Make and sign the gramine manifest
 RUN make SGX=1 RA_TYPE=epid
 
-CMD gramine-sgx-sigstruct-view sgx-revm.sig
+CMD [ "gramine-sgx-sigstruct-view sgx-revm.sig" ]
