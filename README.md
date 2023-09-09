@@ -1,33 +1,30 @@
 # GRAMINE - SGX - REVM
 
-**PoC illustrating the usage of the [Gramine platform](https://gramine.readthedocs.io/) for executing
-an EVM message confidentially.**
+**PoC of execution an EVM message using [Gramine platform](https://gramine.readthedocs.io/),
+  including remote attestation and limited reproducibility.**
 
 ## How it works
 
-0. User manually provisions an [SGX server, e.g. on Azure](https://learn.microsoft.com/en-us/azure/confidential-computing/quick-create-portal)
-1. SGX-enabled server opens up a TCP Socket with TLS Enabled (assumes some kind of Certificate is already generated, see first line in main.rs - ideally there's a productionized way to do Certificate provisioning).
-2. User submits a TLS-encrypted payload to the server, ensuring the user and the server only have access to the information being delivered (the server actually doesn't because the socket is opened within the SGX enclave).
-3. The Server proceeds to parse the payload into an EVM message and execute it _confidentially_.
+The sample program reads an input message and any necessary storage proofs from the untrusted host, via the file system `data/input`.
+This file should be customized to provide a payload which contains all the storage slots & values required by their transaction, _including Merkle Patricia Proofs_ for proving that these transactions are part of the actual state. It assumes that there is also a state root available to check against.
 
-The EVM database is expected to be instantiated as _empty_, and the user is expected to provide a payload which contains all the storage slots & values required by their transaction, _including Merkle Patricia Proofs_ for proving that these transactions are part of the actual state. It assumes that there is also a state root available to check against.
+The mapping of the input file is specified in the `sgx-revm.manifest.template` that Gramine uses to build the enclave and produce the MRENCLAVE hash that represents the application's trusted compute base.
 
-## TODO
+The emphasis of this demo is on reproducibility. You do not need an SGX instance to follow along with building and verification.
+Reproducibility comes mainly from using Gramine's published dockerhub image. See our minimal `Dockerfile` for more context.
 
-1. Make the demo unit-testable for CI usage
+To actually run the entire experiment using SGX, you might provision an [SGX server, e.g. on Azure](https://learn.microsoft.com/en-us/azure/confidential-computing/quick-create-portal).
+The same Docker image is used, only now the host's AESM service and SGX driver are attached.
 
 ## How to replicate the MRENCLAVE build using Docker (no SGX Required)
 
 The best way to replicate the results is through Docker. The included Dockerfile begins from the Gramine project's tagged docker image.
-
-At this point you have produced an MRENCLAVE. This should be identical to the MRENCLAVE that would run on an SGX-enabled node.
+If the build succeeds then you have reproduced the MRENCLAVE, which should be identical to the MRENCLAVE that would run on an SGX-enabled node.
 
 Next we can validate the sample report, signed from IAS. If the MRENCLAVE doesn't match, this will be reported. The sample report is clearly from an unpatched machine, `--allow-outdated-tcb` is just so it outputs the full report, it's not a policy suggestion.
-
-Even without SGX, we can complete the interactive "quote verification" step. This has to use an API key, but it doesn't have to be the one used from codesigning.
-Note that this is one of the flows that is different when using DCAP, and it is not part of the TCB for the verifier.
+Also notice that even without SGX, we can complete the interactive "quote verification" step. This has to use an API key, but it doesn't have to be the one used from codesigning.
+This is one of the flows that is different when using DCAP, and it is not part of the TCB for the verifier.
 The significance in this demo is to show that this step doesn't need to be run in an enclave.
-
 
 ```bash
 docker build . --tag revm
