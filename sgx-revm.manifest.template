@@ -1,0 +1,57 @@
+# Rust manifest example
+
+loader.entrypoint = "file:{{ gramine.libos }}"
+libos.entrypoint = "{{ self_exe }}"
+loader.log_level = "{{ log_level }}"
+
+loader.env.LD_LIBRARY_PATH = "/lib:{{ arch_libdir }}"
+
+# See https://gramine.readthedocs.io/en/stable/performance.html#glibc-malloc-tuning
+loader.env.MALLOC_ARENA_MAX = "1"
+
+# For easier debugging — not strictly required to run this workload
+loader.env.RUST_BACKTRACE = "full"
+
+fs.mounts = [
+  { path = "/lib", uri = "file:{{ gramine.runtimedir() }}" },
+  { path = "{{ arch_libdir }}", uri = "file:{{ arch_libdir }}" },
+
+  # For providing input through trusted or host-provided input files
+  { path = "/var/sgx-revm-data/", uri = "file:data" },
+]
+
+sgx.debug = false
+sgx.edmm_enable = {{ 'true' if env.get('EDMM', '0') == '1' else 'false' }}
+
+# Enabling remote attestation
+sgx.remote_attestation = "{{ ra_type }}"
+sgx.ra_client_spid = "{{ ra_client_spid }}"
+sgx.ra_client_linkable = {{ 'true' if ra_client_linkable == '1' else 'false' }}
+
+sgx.trusted_files = [
+  "file:{{ gramine.libos }}",
+  "file:{{ self_exe }}",
+  "file:{{ gramine.runtimedir() }}/",
+  "file:{{ arch_libdir }}/",
+]
+
+sgx.allowed_files = [
+  "file:data/input",
+  "file:data/quote",
+  "file:data/output",
+]
+
+# The Tokio runtime requires eventfd, and the Gramine implementation
+# currently relies on the host in an insecure manner. This setting isn't
+# suitable for production deployment, but works well as a stopgap during
+# development while a proper implementation in Gramine is being worked on.
+sys.insecure__allow_eventfd = false
+
+# The maximum number of threads in a single process needs to be declared in advance.
+# You need to account for:
+# - one main thread
+# - the tokio worker threads
+# - any threads and threadpools you might be starting
+# - helper threads internal to Gramine — see:
+#   https://gramine.readthedocs.io/en/stable/manifest-syntax.html#number-of-threads
+sgx.max_threads = 8
