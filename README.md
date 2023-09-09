@@ -28,10 +28,24 @@ docker run -it revm "gramine-sgx-sigstruct-view sgx-revm.sig"
 ```
 This should produce the sample MRENCLAVE, `467282b1e01620ac2f799aa02759a1461edfdde23b86519f98c0913bc39ca1ab`
 
-Next we can validate the sample reports included.
+### Verifying a sample reports
+Next we can validate the sample report, signed from IAS. If the MRENCLAVE doesn't match, this will be reported. The sample report is clearly from an unpatched machine, `--allow-outdated-tcb` is just so it outputs the full report, it's not a policy suggestion.
+
 ```bash
 export MRENCLAVE=467282b1e01620ac2f799aa02759a1461edfdde23b86519f98c0913bc39ca1ab
-gramine-sgx-ias-verify-report -E $MRENCLAVE -v -r sample.report -s sample.reportsig --allow-outdated-tcb
+gramine-sgx-ias-verify-report -E $MRENCLAVE -v -r sample/sample.report -s sample/sample.reportsig --allow-outdated-tcb
+```
+
+### Untrusted interaction with IAS to generate a report from sample quote
+
+Even without SGX, we can complete the interactive "quote verification" step. This has to use an API key, but it doesn't have to be the one used from codesigning.
+Note that this is one of the flows that is different when using DCAP, and it is not part of the TCB for the verifier.
+The significance in this demo is to show that this step doesn't need to be run in an enclave.
+```bash
+gramine-sgx-quote-view sample/sample.quote
+export RA_API_KEY=669244b3e6364b5888289a11d2a1726d
+gramine-sgx-ias-request report -k $RA_API_KEY
+gramine-sgx-ias-verify-report -r data/report -s data/reportsig
 ```
 
 ## How to replicate the execution on an SGX-enabled environment (still using Docker)
@@ -60,9 +74,8 @@ You can register for free here: https://api.portal.trustedservices.intel.com/EPI
 docker run -it -v ./data:/workdir/data revm bash
 gramine-sgx-quote-view data/quote
 export RA_API_KEY=669244b3e6364b5888289a11d2a1726d
-gramine-sgx-ias-request report -k $RA_API_KEY
+gramine-sgx-ias-request report -k $RA_API_KEY -q data/quote -r data/report -s data/reportsig
 gramine-sgx-ias-verify-report -r data/report -s data/reportsig
-
 ```
 
 It should respond with something `IAS submission successful`. Anything else indicates the API key is no longer valid and you should try to register your own.
@@ -91,25 +104,28 @@ echo "deb [arch=amd64 signed-by=/usr/share/keyrings/intel-sgx-deb.asc] https://d
 
 sudo apt-get update
 sudo apt-get install gramine libsgx-aesm-epid-plugin
-```
 
 # Check your SGX setup, all should be green except the `libsgx_enclave_common` maybe.
-```bash
 is-sgx-available
-```
 
 # Generate Gramine mrsigner keys if you haven't yet (we won't use code signing but it's needed)
-```bash
 gramine-sgx-gen-private-key
-```
+
+# Set up rust
+curl https://sh.rustup.rs -sSf | bash
+rustup toolchain install nightly
 
 # Build the rust target. Unlike Fortanix, this doesn't include any custom target.
-```bash
 cargo build --release
-```
 
 # Use Gramine to build the manifest and compute the MRENCLAVE
-```bash
 make SGX=1
 gramine-sgx-sigstruct-view sgx-revm.sig
+
+# Run Gramine
+gramine-sgx sgx-revm
+gramine-sgx-quote-view data/quote
+export RA_API_KEY=669244b3e6364b5888289a11d2a1726d
+gramine-sgx-ias-request report -k $RA_API_KEY -q data/quote -r data/report -s data/reportsig
+gramine-sgx-ias-verify-report -r data/report -s data/reportsig
 ```
