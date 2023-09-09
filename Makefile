@@ -22,7 +22,7 @@ endif
 $(SELF_EXE): Cargo.toml 
 	cargo build --release
 
-RA_TYPE ?= epid
+RA_TYPE ?= dcap
 RA_CLIENT_SPID ?= 12345678901234567890123456789012
 RA_CLIENT_LINKABLE ?= 0
 
