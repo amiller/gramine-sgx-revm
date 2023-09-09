@@ -26,6 +26,13 @@ At this point you have produced an MRENCLAVE. This should be identical to the MR
 docker build . --tag revm
 docker run -it revm "gramine-sgx-sigstruct-view sgx-revm.sig"
 ```
+This should produce the sample MRENCLAVE, `467282b1e01620ac2f799aa02759a1461edfdde23b86519f98c0913bc39ca1ab`
+
+Next we can validate the sample reports included.
+```bash
+export MRENCLAVE=467282b1e01620ac2f799aa02759a1461edfdde23b86519f98c0913bc39ca1ab
+gramine-sgx-ias-verify-report -E $MRENCLAVE -v -r sample.report -s sample.reportsig --allow-outdated-tcb
+```
 
 ## How to replicate the execution on an SGX-enabled environment (still using Docker)
 
@@ -55,6 +62,7 @@ gramine-sgx-quote-view data/quote
 export RA_API_KEY=669244b3e6364b5888289a11d2a1726d
 gramine-sgx-ias-request report -k $RA_API_KEY
 gramine-sgx-ias-verify-report -r data/report -s data/reportsig
+
 ```
 
 It should respond with something `IAS submission successful`. Anything else indicates the API key is no longer valid and you should try to register your own.
@@ -62,6 +70,7 @@ It should respond with something `IAS submission successful`. Anything else indi
 ## Replicating the experiment with Gramine directly, no Docker
 
 This may be more direct if you already have a Gramine instance installed. This folder is meant to be convenient to run from within `gramine/CI-Examples/gramine-sgx-revm`.
+However the main drawback is that there will be little chance of reproducing MRENCLAVE exactly system by system
 
 ### Installing the Gramine platform
 
