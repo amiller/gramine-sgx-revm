@@ -40,7 +40,7 @@ gramine-sgx-ias-verify-report -E $MRENCLAVE -v -r sample/sample.report -s sample
 # Untrusted interaction with IAS
 gramine-sgx-quote-view sample/sample.quote
 export RA_API_KEY=669244b3e6364b5888289a11d2a1726d
-gramine-sgx-ias-request report -k $RA_API_KEY -r data/report -s data/reportsig
+gramine-sgx-ias-request report -k $RA_API_KEY -q sample/sample.quote -r data/report -s data/reportsig
 gramine-sgx-ias-verify-report -E $MRENCLAVE -v -r data/report -s data/reportsig --allow-outdated-tcb
 ```
 
