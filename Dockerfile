@@ -24,6 +24,7 @@ RUN rm src/lib.rs
 # Now add our actual source
 COPY Makefile sgx-revm.manifest.template ./
 COPY src/main.rs ./src/
+COPY sample/ ./sample/
 
 # Build with rust
 RUN cargo build --release
