@@ -14,6 +14,15 @@ RUN mkdir /etc/init
 RUN mkdir -p /opt/intel/sgx-dcap-pccs/config/
 RUN DEBIAN_FRONTEND=noninteractive apt-get install -y sgx-dcap-pccs
 
+WORKDIR /workdir
+
+# Install the DCAP SGX SDK
+RUN apt-get install -y wget
+RUN wget https://download.01.org/intel-sgx/latest/dcap-latest/linux/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.21.100.1.bin
+RUN chmod +x ./sgx_linux_*.bin
+RUN (echo no; echo /opt/intel/) | ./sgx_linux_x64_sdk_2.21.100.1.bin
+RUN echo "source '/opt/intel/sgxsdk/environment'" | tee -a "$HOME/.bashrc" "$HOME/.zshrc" > /dev/null
+
 # Setup rust
 RUN curl https://sh.rustup.rs -sSf | bash -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
@@ -22,7 +31,7 @@ RUN rustup toolchain install 1.72.0
 # Gramine private key (necessary, not an important key though)
 RUN gramine-sgx-gen-private-key
 
-WORKDIR /workdir
+
 
 # This should be associated with an acive IAS SPID in order for
 # gramine tools like gramine-sgx-ias-request and gramine-sgx-ias-verify
@@ -45,5 +54,12 @@ RUN cargo build --release
 
 # Make and sign the gramine manifest
 RUN make SGX=1 RA_TYPE=dcap
+
+
+# Practice with PCCS
+RUN apt-get install -y git
+RUN git clone https://github.com/intel/SGXDataCenterAttestationPrimitives
+
+
 
 CMD [ "gramine-sgx-sigstruct-view sgx-revm.sig" ]
