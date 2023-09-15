@@ -28,7 +28,7 @@ The significance in this demo is to show that this step doesn't need to be run i
 
 ```bash
 docker build . --tag revm
-docker run -it -v ./data:/workdir/data revm bash
+docker run -it -v $(pwd)/data:/workdir/data revm bash
 
 gramine-sgx-sigstruct-view sgx-revm.sig
 # Expect: mr_enclave: 38592370d0c81f182fc027e8f8afc64f8f1bbe7cf7d59183eb2497c3a27809c3
